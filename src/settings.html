@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>P6 Intelligence Agent</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon {
+      width: 32px;
+      height: 32px;
+      background: #1f6feb22;
+      border: 1px solid #1f6feb44;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .header-text h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 1px;
+    }
+
+    .content {
+      padding: 20px;
+      overflow-y: auto;
+      height: calc(100vh - 65px);
+    }
+
+    .status-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.idle     { background: #8b949e; }
+    .status-dot.syncing  { background: #d29922; animation: pulse 1s infinite; }
+    .status-dot.success  { background: #3fb950; }
+    .status-dot.error    { background: #f85149; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-text p:first-child {
+      font-size: 13px;
+      font-weight: 500;
+      color: #e6edf3;
+    }
+
+    .status-text p:last-child {
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #e6edf3;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: #1f6feb;
+    }
+
+    .btn {
+      padding: 9px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+
+    .btn-primary   { background: #1f6feb; color: #fff; }
+    .btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+    .btn-success   { background: #238636; color: #fff; }
+    .btn-danger    { background: #da3633; color: #fff; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .toggle-row span {
+      font-size: 13px;
+      color: #e6edf3;
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #21262d;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: 1px solid #30363d;
+    }
+
+    .slider:before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 2px;
+      top: 2px;
+      background: #8b949e;
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    input:checked + .slider { background: #1f6feb22; border-color: #1f6feb; }
+    input:checked + .slider:before { transform: translateX(18px); background: #1f6feb; }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 5px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #30363d;
+      margin: 20px 0;
+    }
+
+    .version {
+      text-align: center;
+      font-size: 11px;
+      color: #484f58;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-icon">⚡</div>
+    <div class="header-text">
+      <h1>P6 Intelligence Agent</h1>
+      <p>Syncing your P6 data to the cloud</p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Status Card -->
+    <div class="status-card" id="statusCard">
+      <div class="status-dot idle" id="statusDot"></div>
+      <div class="status-text">
+        <p id="statusMessage">Not configured</p>
+        <p id="lastSync">Never synced</p>
+      </div>
+    </div>
+
+    <!-- License Key -->
+    <div class="section">
+      <label>License Key</label>
+      <input type="password" id="licenseKey" placeholder="Enter your license key" />
+      <p class="hint">Found in your welcome email from P6 Intelligence</p>
+    </div>
+
+    <!-- Database Path -->
+    <div class="section">
+      <label>P6 Database File</label>
+      <div class="input-row">
+        <input type="text" id="dbPath" placeholder="C:\path\to\PPMDBSQLite.db" />
+        <button class="btn btn-secondary" onclick="browsePath()">Browse</button>
+      </div>
+      <p class="hint">Select your local Primavera P6 SQLite database file</p>
+    </div>
+
+    <!-- Sync Toggle -->
+    <div class="section">
+      <label>Auto Sync</label>
+      <div class="toggle-row">
+        <span>Sync every 1 minute automatically</span>
+        <label class="toggle">
+          <input type="checkbox" id="syncEnabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveConfig()">Save Settings</button>
+      <button class="btn btn-success" onclick="syncNow()">Sync Now</button>
+    </div>
+
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron')
+
+    function setStatus(dotClass, message, lastSyncText) {
+      const dot = document.getElementById('statusDot')
+      const msg = document.getElementById('statusMessage')
+      const last = document.getElementById('lastSync')
+      dot.className = 'status-dot ' + dotClass
+      msg.textContent = message
+      if (lastSyncText) last.textContent = lastSyncText
+    }
+
+    async function loadConfig() {
+      const config = await ipcRenderer.invoke('get-config')
+      document.getElementById('licenseKey').value = config.licenseKey || ''
+      document.getElementById('dbPath').value = config.dbPath || ''
+      document.getElementById('syncEnabled').checked = config.syncEnabled || false
+      if (config.licenseKey && config.dbPath) {
+        setStatus('idle', 'Configured — ready to sync', config.lastSync ? 'Last sync: ' + new Date(config.lastSync).toLocaleTimeString() : 'Never synced')
+      }
+    }
+
+    async function browsePath() {
+      const filePath = await ipcRenderer.invoke('browse-db')
+      if (filePath) {
+        document.getElementById('dbPath').value = filePath
+      }
+    }
+
+    async function saveConfig() {
+      const config = {
+        licenseKey: document.getElementById('licenseKey').value.trim(),
+        dbPath: document.getElementById('dbPath').value.trim(),
+        syncEnabled: document.getElementById('syncEnabled').checked,
+        backendUrl: 'https://p6intelligence-backend-production.up.railway.app'
+      }
+      const result = await ipcRenderer.invoke('save-config', config)
+      if (result.success) {
+        setStatus('success', 'Settings saved — ready to sync', 'Never synced')
+      }
+    }
+
+    async function syncNow() {
+      setStatus('syncing', 'Syncing...', 'Please wait...')
+
+      try {
+        const result = await ipcRenderer.invoke('sync-now')
+        console.log('Sync result:', JSON.stringify(result))
+
+        if (result && result.success) {
+          setStatus(
+            'success',
+            `✅ Synced ${result.meta.taskCount} activities from ${result.meta.projectCount} projects`,
+            'Last sync: ' + new Date().toLocaleTimeString()
+          )
+        } else {
+          setStatus(
+            'error',
+            '❌ Error: ' + (result?.error || 'Unknown error'),
+            'Sync failed'
+          )
+        }
+      } catch (err) {
+        setStatus('error', '❌ Error: ' + err.message, 'Sync failed')
+      }
+    }
+
+    loadConfig()
+  </script>
+
+  <div class="version">P6 Intelligence Agent v1.0.0</div>
+</body>
+</html>

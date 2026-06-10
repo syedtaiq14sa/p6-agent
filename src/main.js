@@ -147,3 +147,15 @@ ipcMain.handle('get-sync-status', () => {
   if (syncEngine) return syncEngine.getStatus()
   return { lastSync: null, status: 'idle', message: 'Not configured' }
 })
+ipcMain.handle('load-projects', async () => {
+  const store = new Store()
+  const config = store.getConfig()
+  if (!config.dbPath) return { success: false, error: 'No database path set' }
+  try {
+    const engine = new SyncEngine(config)
+    const projects = await engine.loadProjects()
+    return { success: true, projects }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})

@@ -225,7 +225,7 @@
 </head>
 <body>
   <div class="header">
-    <div class="header-icon">⚡</div>
+    <div class="header-icon"><img src="../assets/icon.png" style="width:20px;height:20px;border-radius:4px" /></div>
     <div class="header-text">
       <h1>P6 Intelligence Agent</h1>
       <p>Syncing your P6 data to the cloud</p>
@@ -271,7 +271,13 @@
         </label>
       </div>
     </div>
-
+<!-- Project Selection -->
+<div class="section" id="projectSection" style="display:none">
+  <label>Select Projects to Sync</label>
+  <button class="btn btn-secondary" style="width:100%;margin-bottom:8px" onclick="loadProjects()">🔄 Load Projects from Database</button>
+  <div id="projectList" style="max-height:200px;overflow-y:auto;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px;display:none"></div>
+  <p class="hint">Only selected projects will be synced. Leave all unchecked to sync all.</p>
+</div>
     <hr class="divider" />
 
     <!-- Actions -->
@@ -295,14 +301,15 @@
     }
 
     async function loadConfig() {
-      const config = await ipcRenderer.invoke('get-config')
-      document.getElementById('licenseKey').value = config.licenseKey || ''
-      document.getElementById('dbPath').value = config.dbPath || ''
-      document.getElementById('syncEnabled').checked = config.syncEnabled || false
-      if (config.licenseKey && config.dbPath) {
-        setStatus('idle', 'Configured — ready to sync', config.lastSync ? 'Last sync: ' + new Date(config.lastSync).toLocaleTimeString() : 'Never synced')
-      }
-    }
+  const config = await ipcRenderer.invoke('get-config')
+  document.getElementById('licenseKey').value = config.licenseKey || ''
+  document.getElementById('dbPath').value = config.dbPath || ''
+  document.getElementById('syncEnabled').checked = config.syncEnabled || false
+  if (config.licenseKey && config.dbPath) {
+    setStatus('idle', 'Configured — ready to sync', config.lastSync ? 'Last sync: ' + new Date(config.lastSync).toLocaleTimeString() : 'Never synced')
+    document.getElementById('projectSection').style.display = 'block'
+  }
+}
 
     async function browsePath() {
       const filePath = await ipcRenderer.invoke('browse-db')
@@ -312,17 +319,20 @@
     }
 
     async function saveConfig() {
-      const config = {
-        licenseKey: document.getElementById('licenseKey').value.trim(),
-        dbPath: document.getElementById('dbPath').value.trim(),
-        syncEnabled: document.getElementById('syncEnabled').checked,
-        backendUrl: 'https://p6intelligence-backend-production.up.railway.app'
-      }
-      const result = await ipcRenderer.invoke('save-config', config)
-      if (result.success) {
-        setStatus('success', 'Settings saved — ready to sync', 'Never synced')
-      }
-    }
+  const selectedProjects = Array.from(document.querySelectorAll('#projectList input:checked')).map(cb => parseInt(cb.value))
+  const config = {
+    licenseKey: document.getElementById('licenseKey').value.trim(),
+    dbPath: document.getElementById('dbPath').value.trim(),
+    syncEnabled: document.getElementById('syncEnabled').checked,
+    backendUrl: 'https://p6intelligence-backend-production.up.railway.app',
+    selectedProjects: selectedProjects
+  }
+  const result = await ipcRenderer.invoke('save-config', config)
+  if (result.success) {
+    setStatus('success', 'Settings saved — ready to sync', 'Never synced')
+    document.getElementById('projectSection').style.display = 'block'
+  }
+}
 
     async function syncNow() {
       setStatus('syncing', 'Syncing...', 'Please wait...')
@@ -348,7 +358,28 @@
         setStatus('error', '❌ Error: ' + err.message, 'Sync failed')
       }
     }
+async function loadProjects() {
+  const listDiv = document.getElementById('projectList')
+  listDiv.style.display = 'block'
+  listDiv.innerHTML = '<p style="color:#8b949e;font-size:12px;padding:4px">Loading...</p>'
 
+  const result = await ipcRenderer.invoke('load-projects')
+  if (!result.success) {
+    listDiv.innerHTML = `<p style="color:#f85149;font-size:12px;padding:4px">Error: ${result.error}</p>`
+    return
+  }
+
+  const config = await ipcRenderer.invoke('get-config')
+  const selected = config.selectedProjects || []
+
+  listDiv.innerHTML = result.projects.map(p => `
+    <label style="display:flex;align-items:center;gap:8px;padding:5px 4px;cursor:pointer;font-size:12px;color:#e6edf3;border-bottom:1px solid #21262d">
+      <input type="checkbox" value="${p.PROJ_ID}" ${selected.includes(p.PROJ_ID) ? 'checked' : ''} />
+      <span>${p.PROJ_SHORT_NAME}</span>
+      <span style="color:#8b949e;margin-left:auto">#${p.PROJ_ID}</span>
+    </label>
+  `).join('')
+}
     loadConfig()
   </script>
 

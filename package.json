@@ -1,6 +1,6 @@
 {
   "name": "p6-agent",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "P6 Intelligence Desktop Agent",
   "main": "src/main.js",
   "author": "P6 Intelligence",

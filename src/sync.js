@@ -50,7 +50,7 @@ class SyncEngine {
       return { projects: [], tasks: [], wbs: [], resources: [], taskResources: [], predecessors: [], evmSummary: [] }
     }
 
-    const projectFilter = `WHERE PROJECT_FLAG = 'Y' AND PROJ_ID IN (${selectedIds.join(',')})`
+    const projectFilter = `WHERE PROJECT_FLAG = 'Y' AND ORIG_PROJ_ID IS NULL AND PROJ_ID IN (${selectedIds.join(',')})`
     const taskFilter = `WHERE PROJ_ID IN (${selectedIds.join(',')})`
 
     const projects = query(`SELECT PROJ_ID, PROJ_SHORT_NAME, PLAN_START_DATE, PLAN_END_DATE, SCD_END_DATE, LAST_RECALC_DATE, ADD_DATE, CREATE_DATE, UPDATE_DATE FROM PROJECT ${projectFilter}`)
@@ -75,7 +75,7 @@ class SyncEngine {
     const SQL = await initSqlJs()
     const fileBuffer = fs.readFileSync(this.config.dbPath)
     const db = new SQL.Database(fileBuffer)
-    const stmt = db.prepare(`SELECT PROJ_ID, PROJ_SHORT_NAME FROM PROJECT WHERE PROJECT_FLAG = 'Y' ORDER BY PROJ_SHORT_NAME`)
+    const stmt = db.prepare(`SELECT PROJ_ID, PROJ_SHORT_NAME FROM PROJECT WHERE PROJECT_FLAG = 'Y' AND ORIG_PROJ_ID IS NULL ORDER BY PROJ_SHORT_NAME`)
     const rows = []
     while (stmt.step()) {
       rows.push(stmt.getAsObject())

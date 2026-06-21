@@ -274,9 +274,13 @@
 <!-- Project Selection -->
 <div class="section" id="projectSection" style="display:none">
   <label>Select Projects to Sync</label>
-  <button class="btn btn-secondary" style="width:100%;margin-bottom:8px" onclick="loadProjects()">🔄 Load Projects from Database</button>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <button class="btn btn-secondary" style="flex:1" onclick="loadProjects()">🔄 Load Projects</button>
+    <button class="btn btn-secondary" onclick="selectAll(true)">All</button>
+    <button class="btn btn-secondary" onclick="selectAll(false)">None</button>
+  </div>
   <div id="projectList" style="max-height:200px;overflow-y:auto;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px;display:none"></div>
-  <p class="hint">Only selected projects will be synced. Leave all unchecked to sync all.</p>
+  <p class="hint" id="selectionHint">Select at least one project to sync. Leave all unchecked to skip sync.</p>
 </div>
     <hr class="divider" />
 
@@ -308,6 +312,7 @@
   if (config.licenseKey && config.dbPath) {
     setStatus('idle', 'Configured — ready to sync', config.lastSync ? 'Last sync: ' + new Date(config.lastSync).toLocaleTimeString() : 'Never synced')
     document.getElementById('projectSection').style.display = 'block'
+    await loadProjects()
   }
 }
 
@@ -329,13 +334,27 @@
   }
   const result = await ipcRenderer.invoke('save-config', config)
   if (result.success) {
+    const hint = document.getElementById('selectionHint')
+    if (selectedProjects.length > 0) {
+      hint.textContent = `${selectedProjects.length} project(s) selected for sync.`
+      hint.style.color = '#3fb950'
+    } else {
+      hint.textContent = 'No projects selected — sync will be skipped.'
+      hint.style.color = '#d29922'
+    }
     setStatus('success', 'Settings saved — ready to sync', 'Never synced')
     document.getElementById('projectSection').style.display = 'block'
   }
 }
 
     async function syncNow() {
-      setStatus('syncing', 'Syncing...', 'Please wait...')
+      const selectedProjects = Array.from(document.querySelectorAll('#projectList input:checked'))
+      if (selectedProjects.length === 0) {
+        setStatus('error', '❌ No projects selected — please select at least one project to sync', 'Sync skipped')
+        return
+      }
+
+      setStatus('syncing', `Syncing ${selectedProjects.length} project(s)...`, 'Please wait...')
 
       try {
         const result = await ipcRenderer.invoke('sync-now')
@@ -357,6 +376,14 @@
       } catch (err) {
         setStatus('error', '❌ Error: ' + err.message, 'Sync failed')
       }
+    }
+
+    function selectAll(checked) {
+      document.querySelectorAll('#projectList input[type="checkbox"]').forEach(cb => cb.checked = checked)
+      const count = checked ? document.querySelectorAll('#projectList input').length : 0
+      const hint = document.getElementById('selectionHint')
+      hint.textContent = checked ? `${count} project(s) selected for sync.` : 'No projects selected — sync will be skipped.'
+      hint.style.color = checked ? '#3fb950' : '#d29922'
     }
 async function loadProjects() {
   const listDiv = document.getElementById('projectList')

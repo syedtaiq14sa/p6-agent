@@ -41,18 +41,17 @@ class SyncEngine {
       return rows
     }
 
-    // Filter by selected projects if any
     const selectedIds = this.config.selectedProjects && this.config.selectedProjects.length > 0
       ? this.config.selectedProjects
       : null
 
-    const projectFilter = selectedIds
-      ? `WHERE PROJECT_FLAG = 'Y' AND PROJ_ID IN (${selectedIds.join(',')})`
-      : `WHERE PROJECT_FLAG = 'Y'`
+    if (!selectedIds) {
+      db.close()
+      return { projects: [], tasks: [], wbs: [], resources: [], taskResources: [], predecessors: [], evmSummary: [] }
+    }
 
-    const taskFilter = selectedIds
-      ? `WHERE PROJ_ID IN (${selectedIds.join(',')})`
-      : ''
+    const projectFilter = `WHERE PROJECT_FLAG = 'Y' AND PROJ_ID IN (${selectedIds.join(',')})`
+    const taskFilter = `WHERE PROJ_ID IN (${selectedIds.join(',')})`
 
     const projects = query(`SELECT PROJ_ID, PROJ_SHORT_NAME, PLAN_START_DATE, PLAN_END_DATE, SCD_END_DATE, LAST_RECALC_DATE, ADD_DATE, CREATE_DATE, UPDATE_DATE FROM PROJECT ${projectFilter}`)
 
@@ -94,6 +93,14 @@ class SyncEngine {
 
   async sync() {
     try {
+      const selectedIds = this.config.selectedProjects && this.config.selectedProjects.length > 0
+        ? this.config.selectedProjects
+        : null
+      if (!selectedIds) {
+        this.setStatus('idle', 'No projects selected — configure selection in settings')
+        return { success: false, error: 'No projects selected' }
+      }
+
       this.setStatus('syncing', 'Reading P6 database...')
       const data = await this.readDatabase()
       this.setStatus('syncing', 'Encrypting data...')
